@@ -1,0 +1,38 @@
+version: "3.8"
+services:
+  api:
+    image: localhost:3000/web:${VERSION}
+    stop_grace_period: 10s
+    networks:
+      - hhp
+    volumes:
+      - data:/data
+      - log:/log
+    ports:
+      - "5001:80"
+    environment:
+      APP_ENV: PRODUCTION
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 60s
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: "200M"
+
+networks:
+  hhp:
+volumes:
+  data:
+  log:
