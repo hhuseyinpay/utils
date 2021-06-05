@@ -1,15 +1,13 @@
 version: "3.8"
 services:
-  api:
-    image: localhost:3000/web:${VERSION}
+  admin:
+    image: localhost:3000/${ADMIN_IMAGE}
     stop_grace_period: 10s
-    networks:
-      - hhp
     volumes:
-      - data:/data
-      - log:/log
+      - /data/data:/data
+      - /data/log:/log
     ports:
-      - "5001:80"
+      - "3003:80"
     environment:
       APP_ENV: PRODUCTION
     healthcheck:
@@ -31,8 +29,19 @@ services:
           cpus: "2"
           memory: "200M"
 
-networks:
-  hhp:
-volumes:
-  data:
-  log:
+  bot:
+    image: localhost:3000/${WEB_IMAGE} 
+    stop_grace_period: 10s
+    volumes:
+      - /data/data:/data
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: "500M"
