@@ -1,0 +1,45 @@
+name: Admin Deployment
+
+on:
+  push:
+    tags:
+      - admin*
+
+  workflow_dispatch:
+
+env:
+  ADMIN_TAG_PREFIX: admin
+  ADMIN_IMAGE_NAME: hhp-admin
+
+  WEB_TAG_PREFIX: web
+  WEB_IMAGE_NAME: hhp-web
+
+jobs:
+  build:
+    runs-on: HhpServer
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Docker build
+        run: docker build -t $ADMIN_IMAGE_NAME ./admin
+
+      - name: Taging and push
+        run: |
+          # admin
+          ADMIN_VERSION=$(git tag --sort=committerdate | grep -E '^'"$ADMIN_TAG_PREFIX"'-[0-9]' | tail -1 | sed -e 's/^'"$ADMIN_TAG_PREFIX"'-//')
+          export ADMIN_IMAGE="${ADMIN_IMAGE_NAME}:${ADMIN_VERSION}"
+          echo "ADMIN_IMAGE=$ADMIN_IMAGE"
+
+          # web
+          WEB_VERSION=$(git tag --sort=committerdate | grep -E '^'"$WEB_TAG_PREFIX"'-[0-9]' | tail -1 | sed -e 's/^'"$WEB_TAG_PREFIX"'-//')  # versiyon numarasını al
+          export WEB_IMAGE="${WEB_IMAGE_NAME}:${WEB_VERSION}"
+          echo "WEB_VERSION=$WEB_VERSION"
+
+          # malı derle registrye yolla
+          docker tag $ADMIN_IMAGE_NAME localhost:3000/$ADMIN_IMAGE
+          docker login -u hhp -p hhppassword localhost:3000
+          docker push localhost:3000/$ADMIN_IMAGE
+
+          # deploy
+          docker stack deploy -c docker-stack.yaml hhp-stack --with-registry-auth
